@@ -138,7 +138,9 @@ static duk_ret_t	es_httprequest_dtor(duk_context *ctx)
 
 		duk_push_pointer(ctx, NULL);
 		duk_put_prop_string(ctx, 0, "\xff""\xff""d");
-	}
+	} else {
+        zabbix_log(LOG_LEVEL_WARNING, "%s: DESTRUCTING HTTP REQUEST __FAILED__: did not detach data", __func__ );
+    }
 
 	return 0;
 }
@@ -170,6 +172,9 @@ static duk_ret_t	es_httprequest_ctor(duk_context *ctx)
 	duk_push_this(ctx);
 
 	request = (zbx_es_httprequest_t *)zbx_malloc(NULL, sizeof(zbx_es_httprequest_t));
+
+    zabbix_log(LOG_LEVEL_WARNING, "%s: DCONSTRUCTING HTTP REQUEST @ %p", __func__, request);
+
 	memset(request, 0, sizeof(zbx_es_httprequest_t));
 
 	if (NULL == (request->handle = curl_easy_init()))

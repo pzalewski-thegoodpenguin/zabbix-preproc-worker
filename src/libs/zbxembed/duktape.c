@@ -17174,6 +17174,8 @@ DUK_EXTERNAL duk_hthread *duk_create_heap(duk_alloc_function alloc_func,
 DUK_EXTERNAL void duk_destroy_heap(duk_hthread *thr) {
 	duk_heap *heap;
 
+	DUK_D(DUK_DPRINT("LEAK: %s:%d Destroy heap", __FUNCTION__, __LINE__));
+
 	if (!thr) {
 		return;
 	}
@@ -19380,10 +19382,6 @@ DUK_LOCAL DUK_COLD DUK_NOINLINE duk_bool_t duk__resize_valstack(duk_hthread *thr
 	duk_tval *pre_top;
 	duk_tval *pre_end;
 	duk_tval *pre_alloc_end;
-	duk_ptrdiff_t diff_bottom;
-	duk_ptrdiff_t diff_top;
-	duk_ptrdiff_t diff_end;
-	duk_ptrdiff_t diff_alloc_end;
 	duk_tval *new_valstack;
 	duk_size_t new_alloc_size;
 	duk_tval *tv_prev_alloc_end;
@@ -19479,22 +19477,22 @@ DUK_LOCAL DUK_COLD DUK_NOINLINE duk_bool_t duk__resize_valstack(duk_hthread *thr
 	DUK_ASSERT(thr->valstack_alloc_end >= thr->valstack_end);
 
 	/* Write new pointers.  Most pointers can be handled as a pointer
-	 * difference.
+	 * difference. Well but obviously not when using realloc...
 	 */
 
-	diff_bottom = (duk_ptrdiff_t) ((duk_uint8_t *) thr->valstack_bottom - (duk_uint8_t *) thr->valstack);
-	diff_top = (duk_ptrdiff_t) ((duk_uint8_t *) thr->valstack_top - (duk_uint8_t *) thr->valstack);
-	diff_end = (duk_ptrdiff_t) ((duk_uint8_t *) thr->valstack_end - (duk_uint8_t *) thr->valstack);
-	diff_alloc_end = (duk_ptrdiff_t) ((duk_uint8_t *) thr->valstack_alloc_end - (duk_uint8_t *) thr->valstack);
-	tv_prev_alloc_end = (duk_tval *) (void *) ((duk_uint8_t *) new_valstack + diff_alloc_end);
+	duk_ptrdiff_t diff_bottom = (duk_ptrdiff_t) ((duk_uint8_t *) thr->valstack_bottom - (duk_uint8_t *) thr->valstack);
+	duk_ptrdiff_t diff_top = (duk_ptrdiff_t) ((duk_uint8_t *) thr->valstack_top - (duk_uint8_t *) thr->valstack);
+	duk_ptrdiff_t diff_end = (duk_ptrdiff_t) ((duk_uint8_t *) thr->valstack_end - (duk_uint8_t *) thr->valstack);
+	duk_ptrdiff_t diff_alloc_end = (duk_ptrdiff_t) ((duk_uint8_t *) thr->valstack_alloc_end - (duk_uint8_t *) thr->valstack);
 
 	thr->valstack = new_valstack;
 
 	thr->valstack_bottom = (duk_tval *) (void *) ((duk_uint8_t *) new_valstack + diff_bottom);
 	thr->valstack_top = (duk_tval *) (void *) ((duk_uint8_t *) new_valstack + diff_top);
-	thr->valstack_end = (duk_tval *) (void *) ((duk_uint8_t *) new_valstack + diff_end);
+	thr->valstack_end = (duk_tval *) (void *) ((duk_uint8_t *) new_valstack + new_alloc_size - DUK_VALSTACK_API_ENTRY_MINIMUM);
 	thr->valstack_alloc_end = (duk_tval *) (void *) ((duk_uint8_t *) new_valstack + new_alloc_size);
 
+	tv_prev_alloc_end = (duk_tval *) (void *) ((duk_uint8_t *) new_valstack + diff_alloc_end);
 
 	/* Assertions: pointer sanity after pointer updates. */
 	DUK_ASSERT(thr->valstack_bottom >= thr->valstack);
@@ -51123,6 +51121,7 @@ duk_heap *duk_heap_alloc(duk_alloc_function alloc_func,
 	/*
 	 *  If selftests enabled, run them as early as possible.
 	 */
+      fprintf(stderr, "HEAP UDATA: %p\n", heap_udata);
 
 #if defined(DUK_USE_SELF_TESTS)
 	DUK_D(DUK_DPRINT("run self tests"));

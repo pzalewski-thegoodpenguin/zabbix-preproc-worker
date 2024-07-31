@@ -378,6 +378,7 @@ out:
 
 static void	preproc_item_result_free(zbx_preproc_item_value_t *value)
 {
+	zabbix_log(LOG_LEVEL_DEBUG, "In %s(): value @ %p [refs: %d]", __func__, value->result_ptr, value->result_ptr->refcount);
 	if (0 == --(value->result_ptr->refcount))
 	{
 		if (NULL != value->result_ptr->result)
@@ -386,6 +387,7 @@ static void	preproc_item_result_free(zbx_preproc_item_value_t *value)
 			zbx_free(value->result_ptr->result);
 		}
 		zbx_free(value->result_ptr);
+		zabbix_log(LOG_LEVEL_DEBUG, "In %s(): Free item result @ %p", __func__, value->result_ptr);
 	}
 	else
 		value->result_ptr = NULL;

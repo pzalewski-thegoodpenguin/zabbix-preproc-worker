@@ -538,6 +538,8 @@ zbx_uint32_t	zbx_preprocessor_pack_result(unsigned char **data, zbx_variant_t *v
 	zbx_ipc_message_t	message;
 	int			history_num;
 
+    message.data = NULL;
+
 	history_num = history->values_num;
 
 	/* 4 is a max field count (without history fields) */

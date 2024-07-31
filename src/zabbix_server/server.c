@@ -41,28 +41,8 @@
 #include "zbxself.h"
 #include "../libs/zbxnix/control.h"
 
-#include "alerter/alerter.h"
-#include "alerter/alert_manager.h"
-#include "alerter/alert_syncer.h"
-#include "dbsyncer/dbsyncer.h"
-#include "dbconfig/dbconfig.h"
-#include "discoverer/discoverer.h"
-#include "httppoller/httppoller.h"
-#include "housekeeper/housekeeper.h"
-#include "pinger/pinger.h"
-#include "poller/poller.h"
-#include "timer/timer.h"
-#include "trapper/trapper.h"
-#include "snmptrapper/snmptrapper.h"
-#include "escalator/escalator.h"
-#include "proxypoller/proxypoller.h"
-#include "selfmon/selfmon.h"
-#include "vmware/vmware.h"
-#include "taskmanager/taskmanager.h"
 #include "preprocessor/preproc_manager.h"
 #include "preprocessor/preproc_worker.h"
-#include "lld/lld_manager.h"
-#include "lld/lld_worker.h"
 #include "events.h"
 #include "../libs/zbxdbcache/valuecache.h"
 #include "setproctitle.h"
@@ -77,6 +57,26 @@
 #include "ipmi/ipmi_manager.h"
 #include "ipmi/ipmi_poller.h"
 #endif
+
+//////////////////
+#define DEFAULT_CONFIG_FILE ""
+#define DEFAULT_ALERT_SCRIPTS_PATH ""
+#define DEFAULT_ALERT_SCRIPTS_PATH ""
+#define DEFAULT_EXTERNAL_SCRIPTS_PATH ""
+#define DEFAULT_SSL_CERT_LOCATION ""
+#define DEFAULT_SSL_KEY_LOCATION ""
+#define DEFAULT_LOAD_MODULE_PATH ""
+#define LOG_TYPE_UNDEFINED 0
+
+char	*CONFIG_FILE		= NULL;
+char		*CONFIG_PID_FILE = NULL;
+char	*CONFIG_LOG_TYPE_STR	= NULL;
+int	CONFIG_LOG_TYPE		= LOG_TYPE_UNDEFINED;
+char	*CONFIG_LOG_FILE	= NULL;
+int	CONFIG_LOG_FILE_SIZE	= 1;
+int	CONFIG_ALLOW_ROOT	= 0;
+int	CONFIG_TIMEOUT		= 3;
+//////////////////
 
 const char	*progname = NULL;
 const char	title_message[] = "zabbix_server";
@@ -317,6 +317,13 @@ int	CONFIG_DOUBLE_PRECISION		= ZBX_DB_DBL_PRECISION_ENABLED;
 volatile sig_atomic_t	zbx_diaginfo_scope = ZBX_DIAGINFO_UNDEFINED;
 
 int	get_process_info_by_thread(int local_server_num, unsigned char *local_process_type, int *local_process_num);
+
+int	get_process_info_by_thread_dummy(int local_server_num, unsigned char *local_process_type, int *local_process_num) {
+	int	server_count = 0;
+    *local_process_type = ZBX_PROCESS_TYPE_PREPROCESSOR;
+    *local_process_num = local_server_num - server_count + CONFIG_PREPROCESSOR_FORKS;
+    return SUCCEED;
+}
 
 int	get_process_info_by_thread(int local_server_num, unsigned char *local_process_type, int *local_process_num)
 {
@@ -569,6 +576,7 @@ static void	zbx_validate_config(ZBX_TASK_EX *task)
 		err = 1;
 	}
 
+#if 0
 	if (NULL != CONFIG_STATS_ALLOWED_IP && FAIL == zbx_validate_peer_list(CONFIG_STATS_ALLOWED_IP, &ch_error))
 	{
 		zabbix_log(LOG_LEVEL_CRIT, "invalid entry in \"StatsAllowedIP\" configuration parameter: %s", ch_error);
@@ -624,7 +632,10 @@ static void	zbx_validate_config(ZBX_TASK_EX *task)
 #if !defined(HAVE_OPENIPMI)
 	err |= (FAIL == check_cfg_feature_int("StartIPMIPollers", CONFIG_IPMIPOLLER_FORKS, "IPMI support"));
 #endif
+#endif
+#if 0
 	err |= (FAIL == zbx_db_validate_config_features());
+#endif
 
 	if (0 != err)
 		exit(EXIT_FAILURE);
@@ -843,7 +854,9 @@ static void	zbx_load_config(ZBX_TASK_EX *task)
 	/* initialize multistrings */
 	zbx_strarr_init(&CONFIG_LOAD_MODULE);
 
+#if 0
 	parse_cfg_file(CONFIG_FILE, cfg, ZBX_CFG_FILE_REQUIRED, ZBX_CFG_STRICT);
+#endif
 
 	zbx_set_defaults();
 
@@ -851,10 +864,14 @@ static void	zbx_load_config(ZBX_TASK_EX *task)
 
 	zbx_validate_config(task);
 #if defined(HAVE_MYSQL) || defined(HAVE_POSTGRESQL)
+#if 0
 	zbx_db_validate_config();
 #endif
+#endif
 #if defined(HAVE_GNUTLS) || defined(HAVE_OPENSSL)
+#if 0
 	zbx_tls_validate_config();
+#endif
 #endif
 }
 
@@ -879,6 +896,8 @@ static void	zbx_free_config(void)
  * Author: Eugene Grigorjev                                                   *
  *                                                                            *
  ******************************************************************************/
+
+#if 1
 int	main(int argc, char **argv)
 {
 	ZBX_TASK_EX	t = {ZBX_TASK_START};
@@ -902,8 +921,11 @@ int	main(int argc, char **argv)
 				break;
 			case 'R':
 				opt_r++;
+#if 0
 				if (SUCCEED != parse_rtc_options(zbx_optarg, program_type, &t.data))
 					exit(EXIT_FAILURE);
+#endif
+                assert(0 && "Not implemented");
 
 				t.task = ZBX_TASK_RUNTIME_CONTROL;
 				break;
@@ -952,17 +974,46 @@ int	main(int argc, char **argv)
 		CONFIG_FILE = zbx_strdup(NULL, DEFAULT_CONFIG_FILE);
 
 	/* required for simple checks */
+#if 0
 	init_metrics();
+#endif
 
 	zbx_load_config(&t);
 
+#if 0
 	if (ZBX_TASK_RUNTIME_CONTROL == t.task)
 		exit(SUCCEED == zbx_sigusr_send(t.data) ? EXIT_SUCCESS : EXIT_FAILURE);
+#endif
 
 	zbx_initialize_events();
 
 	return daemon_start(CONFIG_ALLOW_ROOT, CONFIG_USER, t.flags);
 }
+#else
+int main(int argc, char *argv[]) {
+    void * ptr = NULL;
+    //zbx_malloc(ptr, 1);
+
+    
+    zbx_es_t *es = malloc(sizeof(zbx_es_t));
+    memset(es, 0, sizeof(zbx_es_t));
+
+	es->env = zbx_malloc(NULL, sizeof(zbx_es_env_t));
+	memset(es->env, 0, sizeof(zbx_es_env_t));
+
+    //duk__selftest_alloc_funcs(es_malloc, es_realloc, es_free, es->env);
+
+       
+
+    void *ptr2 = es_malloc(es->env, 512);
+    es_free(es->env, ptr2);
+
+
+    free(es->env);
+    free(es);
+}
+#endif
+
 
 static void	zbx_main_sigusr_handler(int flags)
 {
@@ -982,6 +1033,10 @@ static void	zbx_main_sigusr_handler(int flags)
 
 }
 
+int daemon_start(int allow_root, const char *user, unsigned int flags) {
+	return MAIN_ZABBIX_ENTRY(flags);
+}
+
 int	MAIN_ZABBIX_ENTRY(int flags)
 {
 	zbx_socket_t	listen_sock;
@@ -993,14 +1048,14 @@ int	MAIN_ZABBIX_ENTRY(int flags)
 		printf("Starting Zabbix Server. Zabbix %s (revision %s).\nPress Ctrl+C to exit.\n\n",
 				ZABBIX_VERSION, ZABBIX_REVISION);
 	}
-
+#if 0
 	if (FAIL == zbx_ipc_service_init_env(CONFIG_SOCKET_PATH, &error))
 	{
 		zbx_error("Cannot initialize IPC services: %s", error);
 		zbx_free(error);
 		exit(EXIT_FAILURE);
 	}
-
+#endif
 	if (SUCCEED != zbx_locks_create(&error))
 	{
 		zbx_error("cannot create locks: %s", error);
@@ -1008,12 +1063,21 @@ int	MAIN_ZABBIX_ENTRY(int flags)
 		exit(EXIT_FAILURE);
 	}
 
+#if 0
 	if (SUCCEED != zabbix_open_log(CONFIG_LOG_TYPE, CONFIG_LOG_LEVEL, CONFIG_LOG_FILE, &error))
 	{
 		zbx_error("cannot open log: %s", error);
 		zbx_free(error);
 		exit(EXIT_FAILURE);
 	}
+#else
+    if (SUCCEED != zabbix_open_log(LOG_TYPE_CONSOLE, CONFIG_LOG_LEVEL, CONFIG_LOG_FILE, &error))
+	{
+		zbx_error("cannot open log: %s", error);
+		zbx_free(error);
+		exit(EXIT_FAILURE);
+	}
+#endif
 
 #ifdef HAVE_NETSNMP
 #	define SNMP_FEATURE_STATUS	"YES"
@@ -1078,6 +1142,30 @@ int	MAIN_ZABBIX_ENTRY(int flags)
 
 	zabbix_log(LOG_LEVEL_INFORMATION, "using configuration file: %s", CONFIG_FILE);
 
+
+    zbx_thread_args_t	thread_args;
+    unsigned char		poller_type;
+
+    if (FAIL == get_process_info_by_thread_dummy(i + 1, &thread_args.process_type, &thread_args.process_num))
+    {
+        THIS_SHOULD_NEVER_HAPPEN;
+        exit(EXIT_FAILURE);
+    }
+
+    thread_args.server_num = i + 1;
+    thread_args.args = NULL;
+
+    threads = (pid_t *)zbx_calloc(threads, threads_num, sizeof(pid_t));
+	threads_flags = (int *)zbx_calloc(threads_flags, threads_num, sizeof(int));
+
+
+	//zbx_thread_start(preprocessing_worker_thread, &thread_args, &threads[i]);
+	preprocessing_worker_thread(&thread_args);
+
+
+
+    return 0;
+#if 0
 #if defined(HAVE_GNUTLS) || defined(HAVE_OPENSSL)
 	if (SUCCEED != zbx_coredump_disable())
 	{
@@ -1202,6 +1290,7 @@ int	MAIN_ZABBIX_ENTRY(int flags)
 #if defined(HAVE_GNUTLS) || defined(HAVE_OPENSSL)
 	zbx_tls_init_parent();
 #endif
+#endif
 	zabbix_log(LOG_LEVEL_INFORMATION, "server #0 started [main process]");
 
 	for (i = 0; i < threads_num; i++)
@@ -1220,6 +1309,7 @@ int	MAIN_ZABBIX_ENTRY(int flags)
 
 		switch (thread_args.process_type)
 		{
+      #if 0
 			case ZBX_PROCESS_TYPE_CONFSYNCER:
 				zbx_thread_start(dbconfig_thread, &thread_args, &threads[i]);
 				DCconfig_wait_sync();
@@ -1303,9 +1393,11 @@ int	MAIN_ZABBIX_ENTRY(int flags)
 			case ZBX_PROCESS_TYPE_PREPROCMAN:
 				zbx_thread_start(preprocessing_manager_thread, &thread_args, &threads[i]);
 				break;
+        #endif
 			case ZBX_PROCESS_TYPE_PREPROCESSOR:
 				zbx_thread_start(preprocessing_worker_thread, &thread_args, &threads[i]);
 				break;
+        #if 0
 #ifdef HAVE_OPENIPMI
 			case ZBX_PROCESS_TYPE_IPMIMANAGER:
 				zbx_thread_start(ipmi_manager_thread, &thread_args, &threads[i]);
@@ -1326,9 +1418,14 @@ int	MAIN_ZABBIX_ENTRY(int flags)
 			case ZBX_PROCESS_TYPE_ALERTSYNCER:
 				zbx_thread_start(alert_syncer_thread, &thread_args, &threads[i]);
 				break;
+      #endif
+            default:
+                assert(0 && "not implemented");
+                break;
 		}
 	}
 
+#if 0
 	if (SUCCEED == zbx_is_export_enabled(ZBX_FLAG_EXPTYPE_EVENTS))
 		zbx_problems_export_init("main-process", 0);
 
@@ -1340,6 +1437,7 @@ int	MAIN_ZABBIX_ENTRY(int flags)
 
 
 	zbx_set_sigusr_handler(zbx_main_sigusr_handler);
+#endif
 
 	while (-1 == wait(&i))	/* wait for any child to exit */
 	{
@@ -1352,7 +1450,9 @@ int	MAIN_ZABBIX_ENTRY(int flags)
 		/* check if the wait was interrupted because of diaginfo remote command */
 		if (ZBX_DIAGINFO_UNDEFINED != zbx_diaginfo_scope)
 		{
+#if 0
 			zbx_diag_log_info(zbx_diaginfo_scope);
+#endif
 			zbx_diaginfo_scope = ZBX_DIAGINFO_UNDEFINED;
 		}
 	}
@@ -1369,10 +1469,12 @@ void	zbx_on_exit(int ret)
 {
 	zabbix_log(LOG_LEVEL_DEBUG, "zbx_on_exit() called");
 
+#if 0
 	if (SUCCEED == DBtxn_ongoing())
 		DBrollback();
+#endif
 
-	if (NULL != threads)
+    if (NULL != threads)
 	{
 		zbx_threads_wait(threads, threads_flags, threads_num, ret);	/* wait for all child processes to exit */
 		zbx_free(threads);
@@ -1381,6 +1483,7 @@ void	zbx_on_exit(int ret)
 #ifdef HAVE_PTHREAD_PROCESS_SHARED
 	zbx_locks_disable();
 #endif
+#if 0
 	free_metrics();
 	zbx_ipc_service_free_env();
 
@@ -1398,6 +1501,7 @@ void	zbx_on_exit(int ret)
 	zbx_destroy_itservices_lock();
 
 	/* free vmware support */
+
 	if (0 != CONFIG_VMWARE_FORKS)
 		zbx_vmware_destroy();
 
@@ -1406,6 +1510,7 @@ void	zbx_on_exit(int ret)
 	zbx_uninitialize_events();
 
 	zbx_unload_modules();
+#endif
 
 	zabbix_log(LOG_LEVEL_INFORMATION, "Zabbix Server stopped. Zabbix %s (revision %s).",
 			ZABBIX_VERSION, ZABBIX_REVISION);

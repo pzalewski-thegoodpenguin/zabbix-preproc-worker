@@ -1570,13 +1570,23 @@ static int	item_preproc_script(zbx_variant_t *value, const char *params, zbx_var
 	char	*code, *output = NULL, *error = NULL;
 	int	size;
 
+	zabbix_log(LOG_LEVEL_WARNING, "LEAK: %s:%d: Function Entry", __FUNCTION__, __LINE__);
+
 	if (FAIL == item_preproc_convert_value(value, ZBX_VARIANT_STR, errmsg))
+    {
+	    zabbix_log(LOG_LEVEL_WARNING, "LEAK: %s:%d: Function Exit: FAIL.", __FUNCTION__, __LINE__);
 		return FAIL;
+    }
 
 	if (SUCCEED != zbx_es_is_env_initialized(&es_engine))
 	{
+	    zabbix_log(LOG_LEVEL_WARNING, "LEAK: %s:%d: ALLOC zbx_es_t was not initialised - Allocating a new one...!", __FUNCTION__, __LINE__);
+        /* Allocate a new script context: - Creates and initalises new duktape heap */
 		if (SUCCEED != zbx_es_init_env(&es_engine, errmsg))
+        {
+	        zabbix_log(LOG_LEVEL_WARNING, "LEAK: %s:%d: Function Exit: FAIL.", __FUNCTION__, __LINE__);
 			return FAIL;
+        }
 	}
 
 	if (ZBX_VARIANT_BIN != bytecode->type)
@@ -1591,6 +1601,7 @@ static int	item_preproc_script(zbx_variant_t *value, const char *params, zbx_var
 
 	size = zbx_variant_data_bin_get(bytecode->data.bin, (void **)&code);
 
+	zabbix_log(LOG_LEVEL_WARNING, "LEAK: %s:%d: Executing preprocess script...", __FUNCTION__, __LINE__);
 	if (SUCCEED == zbx_es_execute(&es_engine, params, code, size, value->data.str, &output, errmsg))
 	{
 		zbx_variant_clear(value);
@@ -1611,6 +1622,7 @@ fail:
 		}
 	}
 
+	zabbix_log(LOG_LEVEL_WARNING, "LEAK: %s:%d: Exit: FAIL.", __FUNCTION__, __LINE__);
 	return FAIL;
 }
 

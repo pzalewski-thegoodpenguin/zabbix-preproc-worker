@@ -818,7 +818,7 @@ size_t	zbx_mem_required_size(int chunks_num, const char *descr, const char *para
 	/* that we will be able to get ourselves 'chunks_num' pieces of memory with a */
 	/* total size of 'size', given that we also have to store 'descr' and 'param'? */
 
-	size += 15;					/* ensure we allocate enough to 16-align zbx_mem_info_t */
+	size += 15;					/* ensure we allocate enough to 8-align zbx_mem_info_t */
 	size += sizeof(zbx_mem_info_t);
 	size += ZBX_PTR_SIZE - 1;			/* ensure we allocate enough to align bucket pointers */
 	size += ZBX_PTR_SIZE * MEM_BUCKET_COUNT;

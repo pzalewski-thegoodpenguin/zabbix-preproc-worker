@@ -20,6 +20,7 @@
 #ifndef ZABBIX_SETPROCTITLE_H
 #define ZABBIX_SETPROCTITLE_H
 
+#if 0
 #if defined(__linux__)				/* Linux */
 #       define PS_OVERWRITE_ARGV
 #elif defined(_AIX)				/* AIX */
@@ -36,6 +37,7 @@
 #		define PS_OVERWRITE_ARGV
 #		define PS_DARWIN_ARGV
 #	endif
+#endif
 #endif
 
 char	**setproctitle_save_env(int argc, char **argv);

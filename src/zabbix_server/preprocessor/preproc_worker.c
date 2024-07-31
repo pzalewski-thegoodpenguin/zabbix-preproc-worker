@@ -356,6 +356,157 @@ static void	worker_preprocess_value(zbx_ipc_socket_t *socket, zbx_ipc_message_t 
 	zbx_vector_ptr_destroy(&history_in);
 }
 
+#define JS_HTTP_TEST                                                                       \
+            "var url = '127.0.0.1:8000/users_100.json';\n"                                  \
+            "var req = new CurlHttpRequest();\n"                                            \
+            "req.SetHttpAuth(HTTPAUTH_BASIC, 'user', 'pass');\n"                            \
+            "req.AddHeader('content-type: application/json');\n"                            \
+            "var res = null;\n"                                                             \
+            "try {\n"                                                                       \
+            "  res = req.Get(url);\n"                                                       \
+            "} catch (err) {\n"                                                             \
+            "  return '(error: ' + err.toString() + ')';\n"                                 \
+            "}\n"                                                                           \
+            "if (req.Status() !== 200) {\n"                                                 \
+            "  return '(error (code): ' + req.Status().toString() + ')';\n"                 \
+            "}\n"                                                                           \
+            "var res_o = JSON.parse(res);\n"                                                \
+            "return JSON.stringify(res_o.length);\n"                                        
+
+ #define JS_GENERATE_DATA \
+"function generate(len){\n" \
+"    var o = [];\n" \
+"    var c_start = ' '.charCodeAt(0);\n" \
+"    var c_end = 'z'.charCodeAt(0) + 1;\n" \
+"    var c_diff = c_end - c_start;\n" \
+"    for (var i = 0; i < len; i++) {\n" \
+"        var c = (i % c_diff) + c_start;\n" \
+"        o.push(c)\n" \
+"    }\n" \
+"    return String.fromCharCode.apply(null, o);\n" \
+"}\n"                                                  
+
+#define JS_REVERSE_TEST                                                                    \
+"function reverse(str) {\n"                                                                   \
+"    var chars = str.split('');\n"                                                            \
+"    var reversed_chars = chars.reverse();\n"                                                 \
+"    return reversed_chars.join('');\n"                                                       \
+"}\n"                                                                                         
+
+static void	worker_preprocess_value_dummy()
+{
+	zbx_uint32_t		size = 0;
+	unsigned char		*data = NULL, value_type;
+	zbx_uint64_t		itemid;
+	zbx_variant_t		value, value_start;
+	int			i, steps_num, results_num, ret;
+	char			*errmsg = NULL, *error = NULL;
+	zbx_timespec_t		*ts;
+	zbx_preproc_op_t	*steps;
+	zbx_vector_ptr_t	history_in, history_out;
+	zbx_preproc_result_t	*results;
+
+	zbx_vector_ptr_create(&history_in);
+	zbx_vector_ptr_create(&history_out);
+    ts = zbx_malloc(NULL, sizeof(*ts));
+
+	//zbx_preprocessor_unpack_task(&itemid, &value_type, &ts, &value, &history_in, &steps, &steps_num,
+	//		message->data);
+    itemid = 12345;
+    steps_num = 1;
+    #if 0
+    zbx_preproc_op_t op = {
+        .type = ZBX_PREPROC_SCRIPT,
+        .error_handler = 0,
+        .params =   JS_GENERATE_DATA \
+                    JS_REVERSE_TEST \
+                    "var data = generate(4096) + value;\n" \
+                    "return data + reverse(data);\n",
+        .error_handler_params = NULL,
+    };
+#else
+    zbx_preproc_op_t op = {
+        .type = ZBX_PREPROC_SCRIPT,
+        .error_handler = 0,
+        .params =   JS_HTTP_TEST
+        ,
+        .error_handler_params = NULL,
+    };
+    #endif
+
+    steps = zbx_malloc(NULL, sizeof (zbx_preproc_op_t) * steps_num);
+    //*steps = op;
+    memcpy(steps, &op, sizeof(op));
+
+    zbx_variant_set_str(&value, strdup("HELLO WORLD"));
+    value_type = ITEM_VALUE_TYPE_STR;
+
+
+
+	zbx_variant_copy(&value_start, &value);
+	results = (zbx_preproc_result_t *)zbx_malloc(NULL, sizeof(zbx_preproc_result_t) * steps_num);
+	zabbix_log(LOG_LEVEL_DEBUG, "%s:%d: %s() MALLOC %d", __FILE__, __LINE__, __func__, sizeof(zbx_preproc_result_t) * steps_num);
+	memset(results, 0, sizeof(zbx_preproc_result_t) * steps_num);
+
+	if (FAIL == (ret = worker_item_preproc_execute(value_type, &value, ts, steps, steps_num, &history_in,
+			&history_out, results, &results_num, &errmsg)) && 0 != results_num)
+	{
+		int action = results[results_num - 1].action;
+
+		if (ZBX_PREPROC_FAIL_SET_ERROR != action && ZBX_PREPROC_FAIL_FORCE_ERROR != action)
+		{
+			worker_format_error(&value_start, results, results_num, errmsg, &error);
+            fprintf(stderr, "Worker item error: %s\n", errmsg);
+			zbx_free(errmsg);
+		}
+		else
+			error = errmsg;
+	}
+
+	if (SUCCEED == ZBX_CHECK_LOG_LEVEL(LOG_LEVEL_DEBUG))
+	{
+		const char	*result;
+
+		result = (SUCCEED == ret ? zbx_variant_value_desc(&value) : error);
+		zabbix_log(LOG_LEVEL_DEBUG, "%s(): %s", __func__, zbx_variant_value_desc(&value_start));
+		zabbix_log(LOG_LEVEL_DEBUG, "%s: %s %s",__func__, zbx_result_string(ret), result);
+	}
+
+	size = zbx_preprocessor_pack_result(&data, &value, &history_out, error);
+
+    //char result_str[512];
+
+    zbx_variant_convert(&value, ZBX_VARIANT_STR );
+    fprintf(stdout, "Preprocess result: %s\n", value.data.str);
+
+
+	zbx_variant_clear(&value);
+	zbx_free(error);
+	zbx_free(ts);
+	zbx_free(steps);
+
+    /*
+	if (FAIL == zbx_ipc_socket_write(socket, ZBX_IPC_PREPROCESSOR_RESULT, data, size))
+	{
+		zabbix_log(LOG_LEVEL_CRIT, "cannot send preprocessing result");
+		exit(EXIT_FAILURE);
+	}*/
+
+	zbx_free(data);
+
+	zbx_variant_clear(&value_start);
+
+	for (i = 0; i < results_num; i++)
+		zbx_variant_clear(&results[i].value);
+	zbx_free(results);
+
+	zbx_vector_ptr_clear_ext(&history_out, (zbx_clean_func_t)zbx_preproc_op_history_free);
+	zbx_vector_ptr_destroy(&history_out);
+
+	zbx_vector_ptr_clear_ext(&history_in, (zbx_clean_func_t)zbx_preproc_op_history_free);
+	zbx_vector_ptr_destroy(&history_in);
+}
+
 /******************************************************************************
  *                                                                            *
  * Function: worker_test_value                                                *
@@ -456,15 +607,26 @@ ZBX_THREAD_ENTRY(preprocessing_worker_thread, args)
 
 	zbx_setproctitle("%s #%d started", get_process_type_string(process_type), process_num);
 
-	while (ZBX_IS_RUNNING())
+    //const long MAX_ITER = 4000;
+    const long MAX_ITER = 1;
+    long CUR_ITER = 0;
+	while (ZBX_IS_RUNNING() && CUR_ITER < MAX_ITER)
 	{
 		update_selfmon_counter(ZBX_PROCESS_STATE_IDLE);
 
-		if (SUCCEED != zbx_ipc_socket_read(&socket, &message))
+        fprintf(stdout, "iteration:%d\n", CUR_ITER);
+		/*if (SUCCEED != zbx_ipc_socket_read(&socket, &message))
 		{
 			zabbix_log(LOG_LEVEL_CRIT, "cannot read preprocessing service request");
 			exit(EXIT_FAILURE);
-		}
+		}*/
+        // spoof a message
+        {
+            message.code = ZBX_IPC_PREPROCESSOR_REQUEST;
+            message.size = 0;
+            message.data = NULL;
+            message.data = zbx_malloc(message.data, 1);
+        }
 
 		update_selfmon_counter(ZBX_PROCESS_STATE_BUSY);
 		zbx_update_env(zbx_time());
@@ -472,7 +634,8 @@ ZBX_THREAD_ENTRY(preprocessing_worker_thread, args)
 		switch (message.code)
 		{
 			case ZBX_IPC_PREPROCESSOR_REQUEST:
-				worker_preprocess_value(&socket, &message);
+                //worker_preprocess_value(&socket, &message);
+				worker_preprocess_value_dummy();
 				break;
 			case ZBX_IPC_PREPROCESSOR_TEST_REQUEST:
 				worker_test_value(&socket, &message);
@@ -480,12 +643,22 @@ ZBX_THREAD_ENTRY(preprocessing_worker_thread, args)
 		}
 
 		zbx_ipc_message_clean(&message);
+    
+        /*
+        printf("[DEBUG] sending dummy preprocess request...\n");
+        send_dummy_message();
+        */
+        sleep(0);
+
+        CUR_ITER++;
 	}
 
 	zbx_setproctitle("%s #%d [terminated]", get_process_type_string(process_type), process_num);
 
-	while (1)
-		zbx_sleep(SEC_PER_MIN);
+	//while (1)
+	//	zbx_sleep(SEC_PER_MIN);
 
 	zbx_es_destroy(&es_engine);
+        
+    fprintf(stdout, "[DEBUG] done...\n");
 }
