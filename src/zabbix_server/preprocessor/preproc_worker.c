@@ -31,6 +31,8 @@
 #include "item_preproc.h"
 #include "preproc_history.h"
 
+#include "stubs.h"
+
 extern unsigned char	process_type, program_type;
 extern int		server_num, process_num;
 

@@ -26,6 +26,8 @@
 #include "zbxserver.h"
 #include "export.h"
 
+#include "stubs.h"
+
 /* event recovery data */
 typedef struct
 {

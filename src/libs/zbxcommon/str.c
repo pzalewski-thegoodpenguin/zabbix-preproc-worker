@@ -27,6 +27,8 @@
 #	include <iconv.h>
 #endif
 
+#include "stubs.h"
+
 static const char	copyright_message[] =
 	"Copyright (C) 2023 Zabbix SIA\n"
 	"License GPLv2+: GNU GPL version 2 or later <https://www.gnu.org/licenses/>.\n"

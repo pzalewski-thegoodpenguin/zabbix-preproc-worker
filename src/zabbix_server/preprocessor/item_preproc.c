@@ -35,6 +35,8 @@
 
 #include "item_preproc.h"
 
+#include "stubs.h"
+
 extern zbx_es_t	es_engine;
 
 /******************************************************************************

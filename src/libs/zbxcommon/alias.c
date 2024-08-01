@@ -22,6 +22,8 @@
 #include "sysinfo.h"
 #include "log.h"
 
+#include "stubs.h"
+
 static ALIAS	*aliasList = NULL;
 
 void	test_aliases(void)

@@ -28,6 +28,8 @@
 #include "preprocessing.h"
 #include "preproc_history.h"
 
+#include "stubs.h"
+
 #define PACKED_FIELD_RAW	0
 #define PACKED_FIELD_STRING	1
 #define MAX_VALUES_LOCAL	256

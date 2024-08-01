@@ -59,6 +59,9 @@
 #endif
 
 //////////////////
+#define __STUB_IMPL__
+#include "stubs.h"
+
 #define DEFAULT_CONFIG_FILE ""
 #define DEFAULT_ALERT_SCRIPTS_PATH ""
 #define DEFAULT_ALERT_SCRIPTS_PATH ""

@@ -25,6 +25,8 @@
 #include "postinit.h"
 #include "valuecache.h"
 
+#include "stubs.h"
+
 #define ZBX_HIST_MACRO_NONE		(-1)
 #define ZBX_HIST_MACRO_ITEM_VALUE	0
 #define ZBX_HIST_MACRO_ITEM_LASTVALUE	1
