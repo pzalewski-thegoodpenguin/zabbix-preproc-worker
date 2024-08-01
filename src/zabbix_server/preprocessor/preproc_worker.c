@@ -627,7 +627,7 @@ ZBX_THREAD_ENTRY(preprocessing_worker_thread, args)
             message.code = ZBX_IPC_PREPROCESSOR_REQUEST;
             message.size = 0;
             message.data = NULL;
-            message.data = zbx_malloc(message.data, 1);
+            //message.data = zbx_malloc(message.data, 1);
         }
 
 		update_selfmon_counter(ZBX_PROCESS_STATE_BUSY);
