@@ -358,42 +358,54 @@ static void	worker_preprocess_value(zbx_ipc_socket_t *socket, zbx_ipc_message_t 
 	zbx_vector_ptr_destroy(&history_in);
 }
 
-#define JS_HTTP_TEST                                                                       \
-            "var url = '127.0.0.1:8000/users_100.json';\n"                                  \
-            "var req = new CurlHttpRequest();\n"                                            \
-            "req.SetHttpAuth(HTTPAUTH_BASIC, 'user', 'pass');\n"                            \
-            "req.AddHeader('content-type: application/json');\n"                            \
-            "var res = null;\n"                                                             \
-            "try {\n"                                                                       \
-            "  res = req.Get(url);\n"                                                       \
-            "} catch (err) {\n"                                                             \
-            "  return '(error: ' + err.toString() + ')';\n"                                 \
-            "}\n"                                                                           \
-            "if (req.Status() !== 200) {\n"                                                 \
-            "  return '(error (code): ' + req.Status().toString() + ')';\n"                 \
-            "}\n"                                                                           \
-            "var res_o = JSON.parse(res);\n"                                                \
-            "return JSON.stringify(res_o.length);\n"                                        
+#define JS_HTTP_TEST                                                                            \
+            "var response = null\n"                                                             \
+            "function make_request() {\n"                                                       \
+            "  var url = '127.0.0.1:8000/big_json_file.json';\n"                                \
+            "  var req = new CurlHttpRequest();\n"                                              \
+            "  req.SetHttpAuth(HTTPAUTH_BASIC, 'user', 'pass');\n"                              \
+            "  req.AddHeader('content-type: application/json');\n"                              \
+            "  var res = null;\n"                                                               \
+            "  try {\n"                                                                         \
+            "    res = req.Get(url);\n"                                                         \
+            "  } catch (err) {\n"                                                               \
+            "    return;\n"                                                                     \
+            "  }\n"                                                                             \
+            "  if (req.Status() !== 200) {\n"                                                   \
+            "    return;\n"                                                                     \
+            "  }\n"                                                                             \
+            "  var res_o = JSON.parse(res);\n"                                                  \
+            "  return JSON.stringify(res_o.length);\n"                                          \
+            "}\n"                                                                               \
+            "for (var i = 0; i < 10000; i++) {\n"                                               \
+            "  response = make_request()\n"                                                     \
+            "}\n"                                                                               \
+            "return response;"                                                                  \
 
- #define JS_GENERATE_DATA \
-"function generate(len){\n" \
-"    var o = [];\n" \
-"    var c_start = ' '.charCodeAt(0);\n" \
-"    var c_end = 'z'.charCodeAt(0) + 1;\n" \
-"    var c_diff = c_end - c_start;\n" \
-"    for (var i = 0; i < len; i++) {\n" \
-"        var c = (i % c_diff) + c_start;\n" \
-"        o.push(c)\n" \
-"    }\n" \
-"    return String.fromCharCode.apply(null, o);\n" \
-"}\n"                                                  
+ #define JS_STRING_TEST                                                                                     \
+            "function generate(len){\n"                                                                     \
+            "    var o = [];\n"                                                                             \
+            "    var c_start = ' '.charCodeAt(0);\n"                                                        \
+            "    var c_end = 'z'.charCodeAt(0) + 1;\n"                                                      \
+            "    var c_diff = c_end - c_start;\n"                                                           \
+            "    for (var i = 0; i < len; i++) {\n"                                                         \
+            "        var c = (i % c_diff) + c_start;\n"                                                     \
+            "        o.push(c)\n"                                                                           \
+            "    }\n"                                                                                       \
+            "    return String.fromCharCode.apply(null, o);\n"                                              \
+            "}\n"                                                                                           \
+            "function reverse(str) {\n"                                                                     \
+            "    var chars = str.split('');\n"                                                              \
+            "    var reversed_chars = chars.reverse();\n"                                                   \
+            "    return reversed_chars.join('');\n"                                                         \
+            "}\n"                                                                                           \
+            "var response = null;\n"                                                                        \
+            "for (var i = 0; i < 10000; i++) {\n"                                                           \
+            "  var data = generate(128);"                                                                   \
+            "  response = data +' TEST ' + reverse(data);\n"                                                \
+            "}\n"                                                                                           \
+            "return response;\n" 
 
-#define JS_REVERSE_TEST                                                                    \
-"function reverse(str) {\n"                                                                   \
-"    var chars = str.split('');\n"                                                            \
-"    var reversed_chars = chars.reverse();\n"                                                 \
-"    return reversed_chars.join('');\n"                                                       \
-"}\n"                                                                                         
 
 static void	worker_preprocess_value_dummy()
 {
@@ -416,7 +428,7 @@ static void	worker_preprocess_value_dummy()
 	//		message->data);
     itemid = 12345;
     steps_num = 1;
-    #if 0
+#if 0
     zbx_preproc_op_t op = {
         .type = ZBX_PREPROC_SCRIPT,
         .error_handler = 0,
@@ -430,7 +442,7 @@ static void	worker_preprocess_value_dummy()
     zbx_preproc_op_t op = {
         .type = ZBX_PREPROC_SCRIPT,
         .error_handler = 0,
-        .params =   JS_HTTP_TEST
+        .params =   JS_STRING_TEST
         ,
         .error_handler_params = NULL,
     };
@@ -440,6 +452,7 @@ static void	worker_preprocess_value_dummy()
     //*steps = op;
     memcpy(steps, &op, sizeof(op));
 
+    // The argument that will be passed into the JavaScript function when it is invoked by worker_item_preproc_execute():
     zbx_variant_set_str(&value, strdup("HELLO WORLD"));
     value_type = ITEM_VALUE_TYPE_STR;
 
@@ -478,6 +491,7 @@ static void	worker_preprocess_value_dummy()
 
     //char result_str[512];
 
+    // Convert the result to string and print it:
     zbx_variant_convert(&value, ZBX_VARIANT_STR );
     fprintf(stdout, "Preprocess result: %s\n", value.data.str);
 
@@ -609,8 +623,8 @@ ZBX_THREAD_ENTRY(preprocessing_worker_thread, args)
 
 	zbx_setproctitle("%s #%d started", get_process_type_string(process_type), process_num);
 
-    //const long MAX_ITER = 4000;
-    const long MAX_ITER = 1;
+    const long MAX_ITER = 500;
+    //const long MAX_ITER = 1;
     long CUR_ITER = 0;
 	while (ZBX_IS_RUNNING() && CUR_ITER < MAX_ITER)
 	{
@@ -622,12 +636,12 @@ ZBX_THREAD_ENTRY(preprocessing_worker_thread, args)
 			zabbix_log(LOG_LEVEL_CRIT, "cannot read preprocessing service request");
 			exit(EXIT_FAILURE);
 		}*/
+
         // spoof a message
         {
             message.code = ZBX_IPC_PREPROCESSOR_REQUEST;
             message.size = 0;
             message.data = NULL;
-            //message.data = zbx_malloc(message.data, 1);
         }
 
 		update_selfmon_counter(ZBX_PROCESS_STATE_BUSY);
