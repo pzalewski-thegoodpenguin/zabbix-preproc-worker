@@ -361,7 +361,7 @@ static void	worker_preprocess_value(zbx_ipc_socket_t *socket, zbx_ipc_message_t 
 #define JS_HTTP_TEST                                                                            \
             "var response = null\n"                                                             \
             "function make_request() {\n"                                                       \
-            "  var url = '127.0.0.1:8000/big_json_file.json';\n"                                \
+            "  var url = '10.42.0.1:8000/big_json_file.json';\n"                                \
             "  var req = new CurlHttpRequest();\n"                                              \
             "  req.SetHttpAuth(HTTPAUTH_BASIC, 'user', 'pass');\n"                              \
             "  req.AddHeader('content-type: application/json');\n"                              \
