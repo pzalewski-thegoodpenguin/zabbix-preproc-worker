@@ -442,8 +442,7 @@ static void	worker_preprocess_value_dummy()
     zbx_preproc_op_t op = {
         .type = ZBX_PREPROC_SCRIPT,
         .error_handler = 0,
-        .params =   JS_STRING_TEST
-        ,
+        .params =   JS_HTTP_TEST,
         .error_handler_params = NULL,
     };
     #endif
