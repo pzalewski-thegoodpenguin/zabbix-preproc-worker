@@ -128,6 +128,8 @@ static duk_ret_t	es_httprequest_dtor(duk_context *ctx)
 
 		env->http_req_objects--;
 
+    zabbix_log(LOG_LEVEL_WARNING, "%s: DESTRUCTING HTTP REQUEST @ %p", __func__, request);
+
 		if (NULL != request->headers)
 			curl_slist_free_all(request->headers);
 		if (NULL != request->handle)
@@ -380,6 +382,7 @@ static duk_ret_t	es_httprequest_query(duk_context *ctx, const char *http_request
 	{
 		err_index = duk_push_error_object(ctx, DUK_RET_EVAL_ERROR, "cannot get URL: %s.",
 				curl_easy_strerror(err));
+    //curl_easy_cleanup(request->handle);
 		goto out;
 	}
 out:
@@ -389,7 +392,7 @@ out:
 	if (-1 != err_index)
 		return duk_throw(ctx);
 
-	duk_push_string(ctx, request->data);
+	duk_push_lstring(ctx, request->data, request->data_offset);
 
 	return 1;
 }
