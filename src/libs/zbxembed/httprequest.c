@@ -128,7 +128,6 @@ static duk_ret_t	es_httprequest_dtor(duk_context *ctx)
 
 		env->http_req_objects--;
 
-    zabbix_log(LOG_LEVEL_WARNING, "%s: DESTRUCTING HTTP REQUEST @ %p", __func__, request);
 
 		if (NULL != request->headers)
 			curl_slist_free_all(request->headers);
@@ -137,6 +136,8 @@ static duk_ret_t	es_httprequest_dtor(duk_context *ctx)
 		zbx_free(request->data);
 		zbx_free(request->headers_in);
 		zbx_free(request);
+
+    zabbix_log(LOG_LEVEL_WARNING, "%s: DESTRUCTING HTTP REQUEST @ %p", __func__, request);
 
 		duk_push_pointer(ctx, NULL);
 		duk_put_prop_string(ctx, 0, "\xff""\xff""d");
@@ -198,7 +199,7 @@ static duk_ret_t	es_httprequest_ctor(duk_context *ctx)
 
 	duk_push_string(ctx, "\xff""\xff""d");
 	duk_push_pointer(ctx, request);
-	duk_def_prop(ctx, -3, DUK_DEFPROP_HAVE_VALUE | DUK_DEFPROP_CLEAR_WRITABLE | DUK_DEFPROP_HAVE_ENUMERABLE |
+	duk_def_prop(ctx, -3, DUK_DEFPROP_HAVE_VALUE | DUK_DEFPROP_SET_WRITABLE| DUK_DEFPROP_HAVE_ENUMERABLE |
 			DUK_DEFPROP_HAVE_CONFIGURABLE);
 
 	duk_push_c_function(ctx, es_httprequest_dtor, 1);
