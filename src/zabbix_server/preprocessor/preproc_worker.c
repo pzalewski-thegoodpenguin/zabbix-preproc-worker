@@ -407,6 +407,14 @@ static void	worker_preprocess_value(zbx_ipc_socket_t *socket, zbx_ipc_message_t 
             "return response;\n" 
 
 
+static void	worker_preprocess_value_dummy_2() {
+  // get memory
+  // void * mem = es_malloc(es_engine, 1024);
+  // // free memory
+  // es_free(es_engine, mem);
+}
+
+
 static void	worker_preprocess_value_dummy()
 {
 	zbx_uint32_t		size = 0;

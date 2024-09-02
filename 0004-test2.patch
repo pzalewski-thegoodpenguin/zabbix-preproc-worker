@@ -1,0 +1,46 @@
+From db6f45bd234d1fa06a014395553c8f35679cf416 Mon Sep 17 00:00:00 2001
+From: Pawel Zalewski <pzalewski@thegoodpenguin.co.uk>
+Date: Mon, 2 Sep 2024 16:42:23 +0100
+Subject: [PATCH 4/4] test2
+
+Signed-off-by: Pawel Zalewski <pzalewski@thegoodpenguin.co.uk>
+---
+ src/libs/zbxembed/httprequest.c | 10 +++++++---
+ 1 file changed, 7 insertions(+), 3 deletions(-)
+
+diff --git a/src/libs/zbxembed/httprequest.c b/src/libs/zbxembed/httprequest.c
+index 34b050e..3cb2488 100644
+--- a/src/libs/zbxembed/httprequest.c
++++ b/src/libs/zbxembed/httprequest.c
+@@ -131,14 +131,16 @@ static duk_ret_t	es_httprequest_dtor(duk_context *ctx)
+ 
+ 		if (NULL != request->headers)
+ 			curl_slist_free_all(request->headers);
+-		if (NULL != request->handle)
++		if (NULL != request->handle) {
+ 			curl_easy_cleanup(request->handle);
++      curl_global_cleanup();
++    }
++    zabbix_log(LOG_LEVEL_WARNING, "%s: DESTRUCTING HTTP REQUEST @ %p", __func__, request);
++
+ 		zbx_free(request->data);
+ 		zbx_free(request->headers_in);
+ 		zbx_free(request);
+ 
+-    zabbix_log(LOG_LEVEL_WARNING, "%s: DESTRUCTING HTTP REQUEST @ %p", __func__, request);
+-
+ 		duk_push_pointer(ctx, NULL);
+ 		duk_put_prop_string(ctx, 0, "\xff""\xff""d");
+ 	} else {
+@@ -180,6 +182,8 @@ static duk_ret_t	es_httprequest_ctor(duk_context *ctx)
+ 
+ 	memset(request, 0, sizeof(zbx_es_httprequest_t));
+ 
++  curl_global_init(CURL_GLOBAL_ALL);
++
+ 	if (NULL == (request->handle = curl_easy_init()))
+ 	{
+ 		err_index = duk_push_error_object(ctx, DUK_RET_EVAL_ERROR, "cannot initialize cURL library");
+-- 
+2.45.1
+

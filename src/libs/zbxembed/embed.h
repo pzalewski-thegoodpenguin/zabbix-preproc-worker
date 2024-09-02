@@ -53,4 +53,8 @@ struct zbx_es_env
 
 zbx_es_env_t	*zbx_es_get_env(duk_context *ctx);
 
+void	*es_malloc(void *udata, duk_size_t size);
+void	*es_realloc(void *udata, void *ptr, duk_size_t size);
+void	es_free(void *udata, void *ptr);
+
 #endif /* ZABBIX_EMBED_H */

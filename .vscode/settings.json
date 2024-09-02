@@ -1,0 +1,24 @@
+{
+  "files.associations": {
+    "array": "c",
+    "string": "c",
+    "string_view": "c",
+    "initializer_list": "c",
+    "utility": "c",
+    "*.inc": "c",
+    "random": "c"
+  },
+  "python.autoComplete.extraPaths": [
+    "${workspaceFolder}/sources/poky/bitbake/lib",
+    "${workspaceFolder}/sources/poky/meta/lib"
+  ],
+  "[python]": {
+    "diffEditor.ignoreTrimWhitespace": false,
+    "editor.formatOnType": true,
+    "files.trimTrailingWhitespace": false
+  },
+  "[shellscript]": {
+    "files.eol": "\n",
+    "files.trimTrailingWhitespace": false
+  }
+}

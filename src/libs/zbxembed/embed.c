@@ -77,7 +77,9 @@ static void	es_handle_error(void *udata, const char *msg)
  * Memory allocation routines to track and limit script memory usage.
  */
 
-static void	*es_malloc(void *udata, duk_size_t size)
+#define ALLOC_LOG_LEVEL  LOG_LEVEL_DEBUG
+
+void	*es_malloc(void *udata, duk_size_t size)
 {
 	zbx_es_env_t	*env = (zbx_es_env_t *)udata;
 	uint64_t	*uptr;
@@ -92,12 +94,18 @@ static void	*es_malloc(void *udata, duk_size_t size)
 
 	env->total_alloc += (size + ZBX_ES_PAD);
 	uptr = zbx_malloc(NULL, size + ZBX_ES_PAD);
+
+  zabbix_log( ALLOC_LOG_LEVEL	, "==== [%p] Allocated %d, total alloc [%d]", uptr, size + ZBX_ES_PAD, env->total_alloc);
+
 	*uptr++ = size;
 
-	return TYPEALIGN(16,uptr);
+  uptr = TYPEALIGN(16,uptr);
+  zabbix_log( ALLOC_LOG_LEVEL	, "==== Returning %p ", uptr);
+
+	return uptr;
 }
 
-static void	*es_realloc(void *udata, void *ptr, duk_size_t size)
+void	*es_realloc(void *udata, void *ptr, duk_size_t size)
 {
 	zbx_es_env_t	*env = (zbx_es_env_t *)udata;
 	uint64_t	*uptr = ptr;
@@ -105,8 +113,8 @@ static void	*es_realloc(void *udata, void *ptr, duk_size_t size)
 
 	if (NULL != uptr)
 	{
-		--uptr;
-		old_size = *TYPEALIGN_DOWN(16,uptr) + ZBX_ES_PAD;
+		uptr = TYPEALIGN_DOWN(16,--uptr);
+		old_size = *uptr + ZBX_ES_PAD;
 	}
 	else
 		old_size = 0;
@@ -120,22 +128,33 @@ static void	*es_realloc(void *udata, void *ptr, duk_size_t size)
 	}
 
 	env->total_alloc += size + ZBX_ES_PAD - old_size;
-	uptr = zbx_realloc(TYPEALIGN_DOWN(16,uptr), size + ZBX_ES_PAD);
+	uptr = zbx_realloc(uptr, size + ZBX_ES_PAD);
+
+  zabbix_log( ALLOC_LOG_LEVEL	, "==== [%p] Reallocatied %d, total alloc [%d]",uptr, size + ZBX_ES_PAD, env->total_alloc);
+
 	*uptr++ = size;
 
-	return TYPEALIGN(16, uptr);
+  uptr = TYPEALIGN(16,uptr);
+  zabbix_log( ALLOC_LOG_LEVEL	, "==== Returning %p ", uptr);
+
+	return uptr;
 }
 
-static void	es_free(void *udata, void *ptr)
+void	es_free(void *udata, void *ptr)
 {
 	zbx_es_env_t	*env = (zbx_es_env_t *)udata;
 	uint64_t	*uptr = ptr;
 
+
 	if (NULL != ptr)
 	{
-		env->total_alloc -= (*(TYPEALIGN_DOWN(16,--uptr)) + ZBX_ES_PAD);
-		void * ptr_aligned = TYPEALIGN_DOWN(16,uptr);
-		zbx_free(ptr_aligned);
+    uptr = TYPEALIGN_DOWN(16,--uptr);
+
+    env->total_alloc -= (*uptr + ZBX_ES_PAD);
+
+    zabbix_log( ALLOC_LOG_LEVEL, "==== [%p] Freed %d, total alloc [%d]", uptr, *uptr + ZBX_ES_PAD, env->total_alloc);
+
+		zbx_free(uptr);
 	}
 }
 

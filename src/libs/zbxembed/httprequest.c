@@ -131,13 +131,14 @@ static duk_ret_t	es_httprequest_dtor(duk_context *ctx)
 
 		if (NULL != request->headers)
 			curl_slist_free_all(request->headers);
-		if (NULL != request->handle)
+		if (NULL != request->handle) {
 			curl_easy_cleanup(request->handle);
+    }
+    zabbix_log(LOG_LEVEL_WARNING, "%s: DESTRUCTING HTTP REQUEST @ %p", __func__, request);
+
 		zbx_free(request->data);
 		zbx_free(request->headers_in);
 		zbx_free(request);
-
-    zabbix_log(LOG_LEVEL_WARNING, "%s: DESTRUCTING HTTP REQUEST @ %p", __func__, request);
 
 		duk_push_pointer(ctx, NULL);
 		duk_put_prop_string(ctx, 0, "\xff""\xff""d");

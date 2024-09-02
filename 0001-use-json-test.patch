@@ -1,0 +1,27 @@
+From b7a237c9b586ad1c512de7caf230ef003bdd650c Mon Sep 17 00:00:00 2001
+From: Pawel Zalewski <pzalewski@thegoodpenguin.co.uk>
+Date: Wed, 14 Aug 2024 15:13:47 +0100
+Subject: [PATCH 1/4] use json test
+
+Signed-off-by: Pawel Zalewski <pzalewski@thegoodpenguin.co.uk>
+---
+ src/zabbix_server/preprocessor/preproc_worker.c | 3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
+
+diff --git a/src/zabbix_server/preprocessor/preproc_worker.c b/src/zabbix_server/preprocessor/preproc_worker.c
+index d30351b..a45f4e0 100644
+--- a/src/zabbix_server/preprocessor/preproc_worker.c
++++ b/src/zabbix_server/preprocessor/preproc_worker.c
+@@ -442,8 +442,7 @@ static void	worker_preprocess_value_dummy()
+     zbx_preproc_op_t op = {
+         .type = ZBX_PREPROC_SCRIPT,
+         .error_handler = 0,
+-        .params =   JS_STRING_TEST
+-        ,
++        .params =   JS_HTTP_TEST,
+         .error_handler_params = NULL,
+     };
+     #endif
+-- 
+2.45.1
+
